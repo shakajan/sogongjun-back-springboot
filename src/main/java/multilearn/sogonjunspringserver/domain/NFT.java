@@ -20,7 +20,7 @@ public class NFT {
     private String metadataUrl;
 
     @OneToOne
-    @JoinColumn(name = "answerId", referencedColumnName = "id")
+    @JoinColumn(name = "answer_id", referencedColumnName = "id")
     private Answer answer;
 
     // Getters and Setters
