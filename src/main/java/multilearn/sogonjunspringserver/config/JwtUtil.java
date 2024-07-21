@@ -2,8 +2,11 @@ package multilearn.sogonjunspringserver.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
@@ -17,13 +20,17 @@ import java.util.Date;
 public class JwtUtil {
 
     private final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
+    private final Environment env;
 
+    private static SecretKey key;
 
-    private static final String secretKey;
-    private static final SecretKey key;
+    public JwtUtil(Environment env) {
+        this.env = env;
+    }
 
-    static {
-        secretKey = "akajsdhakdhajkdhakjdkhsakdhsakjdhkshssdhakdhsk";
+    @PostConstruct
+    public void init() {
+        String secretKey = env.getProperty("jwt.key");
         key = new SecretKeySpec(Base64.getDecoder().decode(secretKey), "HmacSHA256");
     }
 
