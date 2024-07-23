@@ -15,6 +15,7 @@ public class UserController {
 
     private final UserService userService;
 
+    @CrossOrigin(origins = "*")
     @PostMapping("/api/users/login")
     @ResponseBody
     public LoginResponseDto login(@RequestBody LoginRequestDto loginRequestDto,
@@ -23,6 +24,7 @@ public class UserController {
     }
 
 
+    @CrossOrigin(origins = "*")
     @PostMapping("/api/users/register")
     public RegisterResponseDto register(@RequestBody RegisterRequestDto registerRequestDto) {
         return userService.register(registerRequestDto);
