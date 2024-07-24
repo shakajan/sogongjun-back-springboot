@@ -10,6 +10,7 @@ import multilearn.sogonjunspringserver.dto.user.RegisterResponseDto;
 import multilearn.sogonjunspringserver.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,19 +40,13 @@ public class UserService {
         return new RegisterResponseDto("User registered successfully.");
     }
 
-    public LoginResponseDto login(LoginRequestDto loginRequestDto) {
-        try {
-            var authToken = new UsernamePasswordAuthenticationToken(
-                    loginRequestDto.getNickname(), loginRequestDto.getPassword()
-            );
-            var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
-            var jwt = jwtUtil.createToken(auth);
-            return new LoginResponseDto("Login successful.", "Bearer " + jwt);
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            logger.error(e.getClass().getSimpleName());
-            throw e;
-        }
+    public LoginResponseDto login(LoginRequestDto loginRequestDto) throws BadCredentialsException {
+        var authToken = new UsernamePasswordAuthenticationToken(
+                loginRequestDto.getNickname(), loginRequestDto.getPassword()
+        );
+        var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
+        var jwt = jwtUtil.createToken(auth);
+        return new LoginResponseDto("Login successful.", "Bearer " + jwt);
     }
 
     //authentication test
