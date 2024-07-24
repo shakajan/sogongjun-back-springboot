@@ -10,6 +10,7 @@ import multilearn.sogonjunspringserver.dto.user.RegisterResponseDto;
 import multilearn.sogonjunspringserver.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -27,7 +28,7 @@ public class UserService {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final JwtUtil jwtUtil;
 
-    public RegisterResponseDto register(RegisterRequestDto registerRequestDto) {
+    public RegisterResponseDto register(RegisterRequestDto registerRequestDto) throws DataIntegrityViolationException {
         String hashedPassword = passwordEncoder.encode(registerRequestDto.getPassword());
         User user = new User();
         user.setPassword(hashedPassword);
