@@ -18,9 +18,8 @@ public class UserController {
     @CrossOrigin(origins = "*")
     @PostMapping("/api/users/login")
     @ResponseBody
-    public LoginResponseDto login(@RequestBody LoginRequestDto loginRequestDto,
-                                  HttpServletResponse response) {
-        return userService.login(loginRequestDto, response);
+    public LoginResponseDto login(@RequestBody LoginRequestDto loginRequestDto) {
+        return userService.login(loginRequestDto);
     }
 
 

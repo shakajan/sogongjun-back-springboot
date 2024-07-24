@@ -41,17 +41,19 @@ public class UserService {
         return new RegisterResponseDto("User registered successfully.");
     }
 
-    public LoginResponseDto login(LoginRequestDto loginRequestDto, HttpServletResponse response) {
-        var authToken = new UsernamePasswordAuthenticationToken(
-                loginRequestDto.getNickname(), loginRequestDto.getPassword()
-        );
-        var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        var jwt = jwtUtil.createToken(auth);
-
-        response.setHeader("Authorization", "Bearer " + jwt);
-        logger.info("[UserService] jwt token in cookie: {}", jwt);
-        return new LoginResponseDto("Login successful.");
+    public LoginResponseDto login(LoginRequestDto loginRequestDto) {
+        try {
+            var authToken = new UsernamePasswordAuthenticationToken(
+                    loginRequestDto.getNickname(), loginRequestDto.getPassword()
+            );
+            var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
+            var jwt = jwtUtil.createToken(auth);
+            return new LoginResponseDto("Login successful.", "Bearer " + jwt);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            logger.error(e.getClass().getSimpleName());
+            throw e;
+        }
     }
 
     //authentication test
