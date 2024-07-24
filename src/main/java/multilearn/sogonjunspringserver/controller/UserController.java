@@ -1,6 +1,5 @@
 package multilearn.sogonjunspringserver.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import multilearn.sogonjunspringserver.dto.user.LoginRequestDto;
 import multilearn.sogonjunspringserver.dto.user.LoginResponseDto;
