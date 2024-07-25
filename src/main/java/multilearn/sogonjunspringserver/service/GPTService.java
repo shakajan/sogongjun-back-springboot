@@ -10,12 +10,13 @@ import multilearn.sogonjunspringserver.repository.QuestionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
 
 @Service
 public class GPTService {
@@ -31,11 +32,11 @@ public class GPTService {
     @Value("${openai.api.image.url}")
     private String imageApiURL;
 
+
     private final RestTemplate template;
     private final Logger logger = LoggerFactory.getLogger(GPTService.class);
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
-
 
     public GPTService(RestTemplate template, QuestionRepository questionRepository, AnswerRepository answerRepository) {
         this.template = template;
@@ -54,7 +55,8 @@ public class GPTService {
         Question savedQuestion = questionRepository.save(question);
         logger.info("[GPTService] saved question: {}", savedQuestion);
         // get text with gpt api
-        OpenaiTextRequestDto textRequest = new OpenaiTextRequestDto(textModel, requestDto.getContent());
+        OpenaiTextRequestDto textRequest = new OpenaiTextRequestDto(textModel, requestDto.getContent() + "(answer less than 1000 byte)");
+        logger.info("[GPTService] Request body for answer: {}", textRequest);
         OpenaiTextResponseDto textResponse =  template.postForObject(textApiURL, textRequest, OpenaiTextResponseDto.class);
         if(textResponse == null) {
             return null; // have to be determined by the convention of exception handling.
@@ -73,23 +75,25 @@ public class GPTService {
         OpenaiImageRequestDto imageRequest = new OpenaiImageRequestDto(imageModel, requestDto.getAnswerText());
         logger.info("[GPTService] image request: {}", imageRequest);
         ResponseEntity<OpenaiImageResponseDto> imageResponse;
+        String url;
+        Question question;
+        Answer answer;
         try {
             imageResponse = template.postForEntity(imageApiURL, imageRequest, OpenaiImageResponseDto.class);
-            String url = imageResponse.getBody().getData().get(0).getUrl();
+            url = imageResponse.getBody().getData().get(0).getUrl();
             var opt = questionRepository.findById(requestDto.getQuestionId());
             if(opt.isEmpty()) {
                 logger.error("[GPTService] question id is invalid. can't find question.");
                 return null;
             }
-            Question question = opt.get();
-            Answer answer = new Answer();
+            question = opt.get();
+            answer = new Answer();
             answer.setQuestion(question);
             answer.setText(requestDto.getAnswerText());
             answer.setImageUrl(url);
 
-            Answer savedAnswer = answerRepository.save(answer); // 영구 저장 url로 변경해야 함
+            Answer savedAnswer = answerRepository.save(answer);
             logger.info("[GPTService] saved answer: {}", savedAnswer);
-            return new ImageResponseDto(requestDto.getQuestionId(), url);
         } catch(HttpClientErrorException.BadRequest e) {
             logger.error("[GPTService] bad request: {}", e.getMessage());
             throw e;
@@ -100,5 +104,6 @@ public class GPTService {
             logger.error("[GPTService] exception: {}", e.getMessage());
             throw e;
         }
+        return new ImageResponseDto(requestDto.getQuestionId(), url);
     }
 }
