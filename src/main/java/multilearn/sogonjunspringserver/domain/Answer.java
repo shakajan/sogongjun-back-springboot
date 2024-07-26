@@ -18,7 +18,7 @@ public class Answer {
     @Column(nullable = false, length = 1000)
     private String text;
 
-    @Column(length = 512)
+    @Column(length = 1000)
     private String imageUrl;
 
     @OneToOne

@@ -81,6 +81,7 @@ public class GPTService {
         try {
             imageResponse = template.postForEntity(imageApiURL, imageRequest, OpenaiImageResponseDto.class);
             url = imageResponse.getBody().getData().get(0).getUrl();
+            logger.info("[GPTService] saved image length: {}", url.length());
             var opt = questionRepository.findById(requestDto.getQuestionId());
             if(opt.isEmpty()) {
                 logger.error("[GPTService] question id is invalid. can't find question.");
