@@ -4,18 +4,24 @@ package multilearn.sogonjunspringserver.service;
 import multilearn.sogonjunspringserver.domain.Answer;
 import multilearn.sogonjunspringserver.domain.Question;
 import multilearn.sogonjunspringserver.domain.User;
+import multilearn.sogonjunspringserver.dto.NFTRequestDto;
+import multilearn.sogonjunspringserver.dto.NFTResponseDto;
 import multilearn.sogonjunspringserver.dto.gpt.*;
 import multilearn.sogonjunspringserver.repository.AnswerRepository;
 import multilearn.sogonjunspringserver.repository.QuestionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 
 @Service
@@ -32,6 +38,8 @@ public class GPTService {
     @Value("${openai.api.image.url}")
     private String imageApiURL;
 
+    @Value("${node.js.nft.url}")
+    private String nodeJsURL;
 
     private final RestTemplate template;
     private final Logger logger = LoggerFactory.getLogger(GPTService.class);
@@ -67,7 +75,10 @@ public class GPTService {
         return new QuestionsResponseDto(savedQuestion.getId(), text, null);
     }
 
-    public ImageResponseDto getImage(ImageRequestDto requestDto) {
+    public ImageResponseDto getImage(ImageRequestDto requestDto)
+            throws HttpClientErrorException,
+            NullPointerException,
+            DataIntegrityViolationException {
         String prompt = requestDto.getAnswerText();
         logger.info("[GPTService] client's prompt: {}", prompt);
 
@@ -78,33 +89,43 @@ public class GPTService {
         String url;
         Question question;
         Answer answer;
-        try {
-            imageResponse = template.postForEntity(imageApiURL, imageRequest, OpenaiImageResponseDto.class);
-            url = imageResponse.getBody().getData().get(0).getUrl();
-            logger.info("[GPTService] saved image length: {}", url.length());
-            var opt = questionRepository.findById(requestDto.getQuestionId());
-            if(opt.isEmpty()) {
-                logger.error("[GPTService] question id is invalid. can't find question.");
-                return null;
-            }
-            question = opt.get();
-            answer = new Answer();
-            answer.setQuestion(question);
-            answer.setText(requestDto.getAnswerText());
-            answer.setImageUrl(url);
 
-            Answer savedAnswer = answerRepository.save(answer);
-            logger.info("[GPTService] saved answer: {}", savedAnswer);
-        } catch(HttpClientErrorException.BadRequest e) {
-            logger.error("[GPTService] bad request: {}", e.getMessage());
-            throw e;
-        } catch(NullPointerException e) {
-            logger.error("[GPTService] null pointer exception: {}", e.getMessage());
-            throw e;
-        } catch(Exception e) {
-            logger.error("[GPTService] exception: {}", e.getMessage());
-            throw e;
+        imageResponse = template.postForEntity(imageApiURL, imageRequest, OpenaiImageResponseDto.class);
+        url = Objects.requireNonNull(imageResponse.getBody()).getData().get(0).getUrl();
+        logger.info("[GPTService] saved image length: {}", url.length());
+        var opt = questionRepository.findById(requestDto.getQuestionId());
+        if(opt.isEmpty()) {
+            logger.error("[GPTService] question id is invalid. can't find question.");
+            return null;
         }
+        question = opt.get();
+        answer = new Answer();
+        answer.setQuestion(question);
+        answer.setText(requestDto.getAnswerText());
+        answer.setImageUrl(url);
+        Answer savedAnswer = answerRepository.save(answer);
+        logger.info("[GPTService] saved answer: {}", savedAnswer);
+
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        CompletableFuture.runAsync(() -> {
+            logger.info("[GPTService] start of posting nft data");
+            logger.info("[GPTService] username: {}", user.getNickname());
+            NFTRequestDto nftRequestDto = new NFTRequestDto(question.getId(),
+                    question.getContent(),
+                    answer.getText(),
+                    user.getNationality(),
+                    user.getGrade(),
+                    url);
+            logger.info("[GPTService] nft request: {}", nftRequestDto);
+            try {
+                ResponseEntity<NFTResponseDto> nftResponseDto = template.postForEntity(nodeJsURL + question.getId().toString(), nftRequestDto, NFTResponseDto.class);
+                String message = Objects.requireNonNull(nftResponseDto.getBody()).getMessage();
+                logger.info("[GPTService] response: {}", message);
+            } catch(Exception e) {
+                logger.error("[GPTService] error message: {}", e.getMessage());
+            }
+        });
+
         return new ImageResponseDto(requestDto.getQuestionId(), url);
     }
 }
