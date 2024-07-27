@@ -1,12 +1,11 @@
 package multilearn.sogonjunspringserver.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import multilearn.sogonjunspringserver.config.JwtUtil;
 import multilearn.sogonjunspringserver.domain.User;
-import multilearn.sogonjunspringserver.dto.user.LoginRequestDto;
-import multilearn.sogonjunspringserver.dto.user.LoginResponseDto;
-import multilearn.sogonjunspringserver.dto.user.RegisterRequestDto;
-import multilearn.sogonjunspringserver.dto.user.RegisterResponseDto;
+import multilearn.sogonjunspringserver.dto.SimpleMessageDto;
+import multilearn.sogonjunspringserver.dto.user.*;
 import multilearn.sogonjunspringserver.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +47,31 @@ public class UserService {
         );
         var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
         var jwt = jwtUtil.createToken(auth);
-        return new LoginResponseDto("Login successful.", "Bearer " + jwt);
+        User user = userRepository.getByNickname(loginRequestDto.getNickname());
+        if(user == null) {
+            throw new EntityNotFoundException("User not found.");
+        }
+        return new LoginResponseDto(
+                "Login successful.",
+                "Bearer " + jwt,
+                user.getNickname(),
+                user.getNationality(),
+                user.getGrade()
+                );
+    }
+
+    public SimpleMessageDto deleteUser(String nickname) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+        if(user == null) {
+            throw new BadCredentialsException("User not found.");
+        }
+        logger.info("[UserService] nickname in token: {}", user.getNickname());
+        logger.info("[UserService] nickname in path : {}", nickname);
+        if(user.getNickname().equals(nickname)) {
+            userRepository.delete(user);
+        }
+        return new SimpleMessageDto("user delete successfully.");
     }
 
     //authentication test

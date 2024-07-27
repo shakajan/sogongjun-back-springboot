@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class ExceptionDto {
+public class SimpleMessageDto {
     private String message;
 }

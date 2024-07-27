@@ -8,4 +8,7 @@ import lombok.Data;
 public class LoginResponseDto {
     private String message;
     private String token;
+    private String nickname;
+    private String nationality;
+    private Integer grade;
 }

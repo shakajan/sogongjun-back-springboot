@@ -1,10 +1,8 @@
 package multilearn.sogonjunspringserver.controller;
 
 import lombok.AllArgsConstructor;
-import multilearn.sogonjunspringserver.dto.user.LoginRequestDto;
-import multilearn.sogonjunspringserver.dto.user.LoginResponseDto;
-import multilearn.sogonjunspringserver.dto.user.RegisterRequestDto;
-import multilearn.sogonjunspringserver.dto.user.RegisterResponseDto;
+import multilearn.sogonjunspringserver.dto.SimpleMessageDto;
+import multilearn.sogonjunspringserver.dto.user.*;
 import multilearn.sogonjunspringserver.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +24,12 @@ public class UserController {
     @PostMapping("/api/users/register")
     public RegisterResponseDto register(@RequestBody RegisterRequestDto registerRequestDto) {
         return userService.register(registerRequestDto);
+    }
+
+    @CrossOrigin(origins = "*")
+    @DeleteMapping("/api/users/{nickname}")
+    public SimpleMessageDto deleteUser(@PathVariable String nickname) {
+        return userService.deleteUser(nickname);
     }
 
     @GetMapping("/api/users/test/{nickname}")

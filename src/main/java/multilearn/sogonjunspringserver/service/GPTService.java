@@ -1,6 +1,7 @@
 package multilearn.sogonjunspringserver.service;
 
 
+import jakarta.persistence.EntityNotFoundException;
 import multilearn.sogonjunspringserver.domain.Answer;
 import multilearn.sogonjunspringserver.domain.Question;
 import multilearn.sogonjunspringserver.domain.User;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -76,7 +78,8 @@ public class GPTService {
     }
 
     public ImageResponseDto getImage(ImageRequestDto requestDto)
-            throws HttpClientErrorException,
+            throws HttpClientErrorException.NotFound,
+            HttpClientErrorException.BadRequest,
             NullPointerException,
             DataIntegrityViolationException {
         String prompt = requestDto.getAnswerText();
@@ -89,21 +92,21 @@ public class GPTService {
         String url;
         Question question;
         Answer answer;
-
-        imageResponse = template.postForEntity(imageApiURL, imageRequest, OpenaiImageResponseDto.class);
-        url = Objects.requireNonNull(imageResponse.getBody()).getData().get(0).getUrl();
-        logger.info("[GPTService] saved image length: {}", url.length());
         var opt = questionRepository.findById(requestDto.getQuestionId());
         if(opt.isEmpty()) {
             logger.error("[GPTService] question id is invalid. can't find question.");
-            return null;
+            throw new EntityNotFoundException("question id is invalid");
         }
+        imageResponse = template.postForEntity(imageApiURL, imageRequest, OpenaiImageResponseDto.class);
+        url = Objects.requireNonNull(imageResponse.getBody()).getData().get(0).getUrl();
+        logger.info("[GPTService] saved image length: {}", url.length());
+
         question = opt.get();
         answer = new Answer();
         answer.setQuestion(question);
         answer.setText(requestDto.getAnswerText());
         answer.setImageUrl(url);
-        Answer savedAnswer = answerRepository.save(answer);
+        Answer savedAnswer = answerRepository.saveAndFlush(answer);
         logger.info("[GPTService] saved answer: {}", savedAnswer);
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
