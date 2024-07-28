@@ -11,4 +11,5 @@ public class LoginResponseDto {
     private String nickname;
     private String nationality;
     private Integer grade;
+    private Long id;
 }
